@@ -1,7 +1,7 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { DefaultProviders } from "./components/providers/default.tsx";
 import AuthCallback from "./pages/auth/Callback.tsx";
-import Index from "./pages/Index.tsx";
+import Index from "./pages/index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import VenuesPage from "./pages/venues/page.tsx";
 import VenueDetailPage from "./pages/venues/[slug]/page.tsx";
