@@ -7,7 +7,6 @@
  * To regenerate, run `npx convex dev`.
  * @module
  */
-
 import * as reviews from "../reviews.js";
 import * as submissions from "../submissions.js";
 import * as users from "../users.js";
@@ -19,37 +18,17 @@ import {
   FunctionReference,
 } from "convex/server";
 
-declare const fullApi: ApiFromModules<{
-  reviews: typeof reviews;
-  submissions: typeof submissions;
-  users: typeof users;
-  venues: typeof venues;
-}>;
+const fullApi = {
+  reviews,
+  submissions,
+  users,
+  venues,
+};
 
-/**
- * A utility for referencing Convex functions in your app's public API.
- *
- * Usage:
- * ```js
- * const myFunctionReference = api.myModule.myFunction;
- * ```
- */
-export declare const api: FilterApi<
-  typeof fullApi,
-  FunctionReference<any, "public">
->;
+/** A utility for referencing Convex functions in your app's public API. */
+export const api = {};
 
-/**
- * A utility for referencing Convex functions in your app's internal API.
- *
- * Usage:
- * ```js
- * const myFunctionReference = internal.myModule.myFunction;
- * ```
- */
-export declare const internal: FilterApi<
-  typeof fullApi,
-  FunctionReference<any, "internal">
->;
+/** A utility for referencing Convex functions in your app's internal API. */
+const internal = {};
 
-export declare const components: {};
+export { internal };
