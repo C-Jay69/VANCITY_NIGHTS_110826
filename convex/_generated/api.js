@@ -8,12 +8,12 @@
  * @module
  */
 
-import type * as reviews from "../reviews.js";
-import type * as submissions from "../submissions.js";
-import type * as users from "../users.js";
-import type * as venues from "../venues.js";
+import * as reviews from "../reviews.js";
+import * as submissions from "../submissions.js";
+import * as users from "../users.js";
+import * as venues from "../venues.js";
 
-import type {
+import {
   ApiFromModules,
   FilterApi,
   FunctionReference,
