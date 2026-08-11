@@ -1,23 +1,42 @@
-import { HerculesAuthProvider } from "@usehercules/auth/react";
+import { createContext, useContext, useState } from "react";
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const authority = import.meta.env.VITE_HERCULES_OIDC_AUTHORITY as
-    | string
-    | undefined;
-  const clientId = import.meta.env.VITE_HERCULES_OIDC_CLIENT_ID as
-    | string
-    | undefined;
+type AuthContextValue = {
+  isAuthenticated: boolean;
+  user: { id: string; name: string; email: string } | null;
+  isLoading: boolean;
+  signin: () => void;
+  signout: () => void;
+};
 
-  // No OIDC config available (e.g. local dev without Hercules env vars).
-  // Render children anyway so the rest of the app works; auth degrades
-  // to signed-out state.
-  if (!authority || !clientId) {
-    return <>{children}</>;
-  }
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export function AuthProvider({ children }: { children: any }) {
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Simulate a brief load then resolve to "not authenticated"
+  setTimeout(() => {
+    setIsLoading(false);
+  }, 100);
+
+  const value: AuthContextValue = {
+    isAuthenticated: false,
+    user: null,
+    isLoading,
+    signin: () => {},
+    signout: () => {},
+  };
 
   return (
-    <HerculesAuthProvider authority={authority} client_id={clientId}>
+    <AuthContext.Provider value={value}>
       {children}
-    </HerculesAuthProvider>
+    </AuthContext.Provider>
   );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 }
