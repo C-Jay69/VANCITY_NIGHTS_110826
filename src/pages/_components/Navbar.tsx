@@ -26,7 +26,7 @@ const NAV_LINKS = [
 function UserMenu() {
   const { user, signout } = useAuth();
   const [open, setOpen] = useState(false);
-  const name = user?.profile.name ?? user?.profile.email ?? "Account";
+  const name = user?.name ?? user?.email ?? "Account";
   const initial = name.charAt(0).toUpperCase();
 
   return (
@@ -201,7 +201,7 @@ function MobileAuthButtons({ onClose }: { onClose: () => void }) {
   return (
     <div className="flex items-center justify-between">
       <span className="text-sm text-muted-foreground truncate max-w-[180px]">
-        {user?.profile.name ?? user?.profile.email ?? "Signed in"}
+        {user?.name ?? user?.email ?? "Signed in"}
       </span>
       <button
         onClick={() => { onClose(); void signout(); }}

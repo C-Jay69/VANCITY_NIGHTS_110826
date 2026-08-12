@@ -1,36 +1,36 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useMemo } from "react";
+
+type AuthUser = {
+  id: string;
+  name: string;
+  email: string;
+};
 
 type AuthContextValue = {
   isAuthenticated: boolean;
-  user: { id: string; name: string; email: string } | null;
+  user: AuthUser | null;
   isLoading: boolean;
-  signin: () => void;
-  signout: () => void;
+  error: Error | null;
+  signin: () => Promise<void>;
+  signout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function AuthProvider({ children }: { children: any }) {
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Simulate a brief load then resolve to "not authenticated"
-  setTimeout(() => {
-    setIsLoading(false);
-  }, 100);
-
-  const value: AuthContextValue = {
-    isAuthenticated: false,
-    user: null,
-    isLoading,
-    signin: () => {},
-    signout: () => {},
-  };
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      isAuthenticated: false,
+      user: null,
+      isLoading: false,
+      error: null,
+      signin: async () => {},
+      signout: async () => {},
+    }),
+    [],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
