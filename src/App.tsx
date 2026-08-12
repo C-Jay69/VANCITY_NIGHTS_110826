@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { DefaultProviders } from "./components/providers/default.tsx";
+import ChatWidget from "./components/ChatWidget.tsx";
 import AuthCallback from "./pages/auth/Callback.tsx";
 import Index from "./pages/index.tsx";
 import NotFound from "./pages/NotFound.tsx";
@@ -22,6 +23,7 @@ export default function App() {
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <ChatWidget />
         </BrowserRouter>
       </DefaultProviders>
     </div>

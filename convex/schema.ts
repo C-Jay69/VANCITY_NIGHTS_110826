@@ -55,4 +55,13 @@ export default defineSchema({
     .index("by_venue", ["venueId"])
     .index("by_user", ["userId"])
     .index("by_venue_and_user", ["venueId", "userId"]),
+
+  // Knowledge base fed to the site chat assistant — area guides, restaurants,
+  // daytime activities, etc.
+  knowledge: defineTable({
+    title: v.string(),
+    category: v.string(), // e.g. "area", "restaurant", "daytime", "bar", "event"
+    content: v.string(),
+    tags: v.array(v.string()),
+  }),
 });
