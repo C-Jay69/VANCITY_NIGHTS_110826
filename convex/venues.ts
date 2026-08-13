@@ -101,8 +101,8 @@ export const seedVenues = mutation({
         whyItsAce:
           "Best Old Fashioned in the city. Go on a rainy Tuesday when it's not packed.",
         imageUrls: [
-          "https://images.unsplash.com/photo-1640902106532-47dd3a2e833e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
-          "https://images.unsplash.com/photo-1500217052183-bc01eee1a74e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
+          "/images/venues/venue-1.jpg",
+          "/images/venues/venue-2.jpg",
         ],
         submitterHandle: "PintLoverPete",
         status: "approved" as const,
@@ -122,8 +122,8 @@ export const seedVenues = mutation({
         whyItsAce:
           "The only club in YVR that consistently books world-class DJs and doesn't charge insane bottle service prices.",
         imageUrls: [
-          "https://images.unsplash.com/photo-1545128485-c400e7702796?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
-          "https://images.unsplash.com/photo-1578736641330-3155e606cd40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
+          "/images/venues/venue-3.jpg",
+          "/images/venues/venue-4.jpg",
         ],
         submitterHandle: "NightOwlNadia",
         status: "approved" as const,
@@ -143,8 +143,8 @@ export const seedVenues = mutation({
         whyItsAce:
           "Skip the Vegas trip — River Rock has everything you need. Especially their live poker room on weekends.",
         imageUrls: [
-          "https://images.unsplash.com/photo-1521364577880-a15e92cbff6f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
-          "https://images.unsplash.com/photo-1509478861672-91e9a2f90c04?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
+          "/images/venues/venue-5.jpg",
+          "/images/venues/venue-6.jpg",
         ],
         submitterHandle: "RichmondRick",
         status: "approved" as const,
@@ -164,8 +164,8 @@ export const seedVenues = mutation({
         whyItsAce:
           "Rotating local taps, no pretension, and a patio that's packed even when it's raining. Very Vancouver.",
         imageUrls: [
-          "https://images.unsplash.com/photo-1621873495884-845a939892d1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
-          "https://images.unsplash.com/photo-1598994671512-395d7a6147e0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
+          "/images/venues/venue-7.jpg",
+          "/images/venues/venue-8.jpg",
         ],
         submitterHandle: "StripSurvivor",
         status: "approved" as const,
@@ -185,8 +185,8 @@ export const seedVenues = mutation({
         whyItsAce:
           "The Funktion-One sound system is the real deal. Catch a mid-week warehouse night for half the crowd and twice the vibe.",
         imageUrls: [
-          "https://images.unsplash.com/photo-1578736641330-3155e606cd40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
-          "https://images.unsplash.com/photo-1545128485-c400e7702796?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
+          "/images/venues/venue-9.jpg",
+          "/images/venues/venue-10.jpg",
         ],
         submitterHandle: "BassheadBrenda",
         status: "approved" as const,
@@ -206,8 +206,8 @@ export const seedVenues = mutation({
         whyItsAce:
           "No bottle service nonsense. Just a proper live band, cheap drinks, and strangers becoming your best friends by midnight.",
         imageUrls: [
-          "https://images.unsplash.com/photo-1517983079452-bbaa6a081a6b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
-          "https://images.unsplash.com/photo-1544785316-6e58aed68a50?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
+          "/images/venues/venue-11.jpg",
+          "/images/venues/venue-12.jpg",
         ],
         submitterHandle: "ClassicVanCity",
         status: "approved" as const,
@@ -227,8 +227,8 @@ export const seedVenues = mutation({
         whyItsAce:
           "The best live music venue in Vancouver for its size. Book a table in advance — it fills up by 9pm on weekends.",
         imageUrls: [
-          "https://images.unsplash.com/photo-1690335008679-1e319b9fa3d8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
-          "https://images.unsplash.com/photo-1640902106532-47dd3a2e833e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
+          "/images/venues/venue-13.jpg",
+          "/images/venues/venue-14.jpg",
         ],
         submitterHandle: "JazzFanJamie",
         status: "approved" as const,
@@ -248,8 +248,8 @@ export const seedVenues = mutation({
         whyItsAce:
           "The rooftop terrace at dusk is genuinely spectacular. Come for the views, stay for the craps table.",
         imageUrls: [
-          "https://images.unsplash.com/photo-1511965897574-f6fc86cf3474?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
-          "https://images.unsplash.com/photo-1521364577880-a15e92cbff6f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
+          "/images/venues/venue-15.jpg",
+          "/images/venues/venue-16.jpg",
         ],
         submitterHandle: "HighRollerHenry",
         status: "approved" as const,
@@ -266,13 +266,10 @@ export const seedVenues = mutation({
         address: "1219 Granville St, Vancouver, BC V6Z 1M6",
         description:
           "Multi-level nightclub with a rooftop patio, three distinct rooms, and a booking policy that actually cares about music. The Friday night hip-hop room is a sweaty, joyful mess in the best possible way.",
-        whyItsAce:
-          "Three rooms means three DJs — find your vibe. The rooftop on a rare clear Vancouver night is worth every dollar of cover.",
-        imageUrls: [
-          "https://images.unsplash.com/photo-1582008558029-34f157a939b5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
-          "https://images.unsplash.com/photo-1578736641330-3155e606cd40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
-        ],
-        submitterHandle: "RooftopRachel",
+imageUrls: [
+            "/images/venues/venue-17.jpg",
+            "/images/venues/venue-18.jpg",
+          ],
         status: "approved" as const,
         isPremium: false,
         isFeatured: false,
@@ -287,13 +284,10 @@ export const seedVenues = mutation({
         address: "6 Powell St, Vancouver, BC V6A 1E7",
         description:
           "One of Gastown's most beloved cocktail bars, sitting above a historic cobblestone street. The Diamond is serious about its drinks without taking itself too seriously. The seasonal cocktail menu changes every few months and never disappoints.",
-        whyItsAce:
-          "Order whatever the bartender recommends — they genuinely know their stuff. The upstairs window seats with Gastown views are magic.",
-        imageUrls: [
-          "https://images.unsplash.com/photo-1636144924623-b3aea3c5f16c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
-          "https://images.unsplash.com/photo-1500217052183-bc01eee1a74e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
-        ],
-        submitterHandle: "CocktailCarla",
+imageUrls: [
+            "/images/venues/venue-19.jpg",
+            "/images/venues/venue-20.jpg",
+          ],
         status: "approved" as const,
         isPremium: false,
         isFeatured: false,
