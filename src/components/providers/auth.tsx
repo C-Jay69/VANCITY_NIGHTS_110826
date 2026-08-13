@@ -99,6 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <HerculesAuthProvider
       authority={authority}
       client_id={clientId}
+      userManagerSettings={{ scope: "openid profile email" }}
       loadingFallback={
         <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
           Loading authentication...

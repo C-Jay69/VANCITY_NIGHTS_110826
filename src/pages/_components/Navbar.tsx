@@ -8,6 +8,7 @@ import {
   LogOutIcon,
   UserIcon,
   ChevronDownIcon,
+  ShieldCheckIcon,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { SignInButton } from "@/components/ui/signin.tsx";
@@ -15,6 +16,9 @@ import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { useAuth } from "@/hooks/use-auth.ts";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Button } from "@/components/ui/button.tsx";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api.js";
+import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
   { label: "Bars", href: "/venues?category=bar" },
@@ -22,6 +26,24 @@ const NAV_LINKS = [
   { label: "Casinos", href: "/venues?category=casino" },
   { label: "All Venues", href: "/venues" },
 ];
+
+function AdminLink({ onClick, className }: { onClick?: () => void; className?: string }) {
+  const isAdmin = useQuery(api.admin.isAdmin);
+  if (!isAdmin) return null;
+  return (
+    <Link
+      to="/admin"
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary transition-colors",
+        className,
+      )}
+    >
+      <ShieldCheckIcon className="h-3.5 w-3.5" />
+      Admin
+    </Link>
+  );
+}
 
 function UserMenu() {
   const { user, signout } = useAuth();
@@ -68,6 +90,9 @@ function UserMenu() {
                 <PenLineIcon className="h-4 w-4" />
                 Submit a Spot
               </Link>
+              <div onClick={() => setOpen(false)}>
+                <AdminLink className="w-full px-3 py-2.5" />
+              </div>
               <button
                 onClick={() => { setOpen(false); void signout(); }}
                 className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer text-left"
@@ -118,6 +143,7 @@ export default function Navbar() {
                 <PenLineIcon className="h-3.5 w-3.5" />
                 Submit a Spot
               </Link>
+              <AdminLink />
             </Authenticated>
           </nav>
 
@@ -179,6 +205,7 @@ export default function Navbar() {
                   <PenLineIcon className="h-3.5 w-3.5" />
                   Submit a Spot
                 </Link>
+                <AdminLink onClick={() => setMobileOpen(false)} className="py-1" />
               </Authenticated>
               <div className="pt-2 border-t border-border">
                 <Unauthenticated>

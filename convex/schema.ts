@@ -64,4 +64,10 @@ export default defineSchema({
     content: v.string(),
     tags: v.array(v.string()),
   }),
+
+  // Key/value app settings, e.g. which model NightShade uses.
+  settings: defineTable({
+    key: v.string(),
+    value: v.string(),
+  }).index("by_key", ["key"]),
 });

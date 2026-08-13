@@ -4,7 +4,7 @@ import { internal } from "./_generated/api";
 
 const DEFAULT_MODEL = "anthropic/claude-3.5-sonnet";
 
-const SYSTEM_PROMPT = `You are "Nights", the friendly local guide for VanCity Nights — a Vancouver nightlife and daylife discovery site.
+const SYSTEM_PROMPT = `You are "NightShade", the friendly local guide for VanCity Nights — a Vancouver nightlife and daylife discovery site.
 You help visitors find great bars, clubs, lounges, casinos, restaurants, and daytime activities in and around Vancouver.
 Answer ONLY from the provided knowledge base and venue list. If the answer isn't covered, say you don't know yet and suggest
 the visitor check the site's venue listings. Keep answers short, warm, and practical. Use bullet points when listing options.`;
@@ -32,6 +32,11 @@ export const chat = action({
     }
 
     const { venues, knowledge } = await ctx.runQuery(internal.chat.getContext);
+    const modelSetting = await ctx.runQuery(internal.settings.getSetting, {
+      key: "nights_model",
+    });
+    const model =
+      modelSetting?.value ?? process.env.OPENROUTER_MODEL ?? DEFAULT_MODEL;
 
     const venueBlock = venues
       .map(
@@ -61,7 +66,7 @@ export const chat = action({
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: process.env.OPENROUTER_MODEL ?? DEFAULT_MODEL,
+        model,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userPrompt },

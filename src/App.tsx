@@ -7,6 +7,7 @@ import NotFound from "./pages/NotFound.tsx";
 import VenuesPage from "./pages/venues/page.tsx";
 import VenueDetailPage from "./pages/venues/[slug]/page.tsx";
 import SubmitPage from "./pages/submit/page.tsx";
+import AdminPage from "./pages/admin/page.tsx";
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
             <Route path="/venues" element={<VenuesPage />} />
             <Route path="/venues/:slug" element={<VenueDetailPage />} />
             <Route path="/submit" element={<SubmitPage />} />
+            <Route path="/admin" element={<AdminPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

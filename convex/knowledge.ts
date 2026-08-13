@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireAdmin } from "./lib/auth";
 
 // Add a knowledge entry for the site chat assistant.
 export const add = mutation({
@@ -10,6 +11,7 @@ export const add = mutation({
     tags: v.array(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     return await ctx.db.insert("knowledge", {
       title: args.title,
       category: args.category,
@@ -23,6 +25,7 @@ export const add = mutation({
 export const remove = mutation({
   args: { id: v.id("knowledge") },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     await ctx.db.delete(args.id);
   },
 });
@@ -31,6 +34,7 @@ export const remove = mutation({
 export const list = query({
   args: {},
   handler: async (ctx) => {
+    await requireAdmin(ctx);
     return await ctx.db.query("knowledge").collect();
   },
 });

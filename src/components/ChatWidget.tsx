@@ -19,7 +19,7 @@ export default function ChatWidget() {
     {
       role: "assistant",
       content:
-        "Hey, I'm Nights — your VanCity guide. Ask me about bars, clubs, restaurants, or daytime stuff around Vancouver.",
+        "Hey, I'm NightShade — your VanCity guide. Ask me about bars, clubs, restaurants, or daytime stuff around Vancouver.",
     },
   ]);
   const [busy, setBusy] = useState(false);
@@ -94,7 +94,7 @@ export default function ChatWidget() {
                 <SparklesIcon className="h-4 w-4" />
               </span>
               <div>
-                <p className="text-sm font-semibold text-foreground">Nights</p>
+                <p className="text-sm font-semibold text-foreground">NightShade</p>
                 <p className="text-xs text-muted-foreground">
                   VanCity's local AI guide
                 </p>
