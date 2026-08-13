@@ -74,16 +74,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Please use signinRedirect for OIDC auth");
       },
       signinRedirect: async () => {
-        const authority = process.env.HERCULES_OIDC_AUTHORITY;
-        const client_id = process.env.HERCULES_OIDC_CLIENT_ID;
+        const authority = import.meta.env.VITE_HERCULES_OIDC_AUTHORITY;
+        const client_id = import.meta.env.VITE_HERCULES_OIDC_CLIENT_ID;
         
         if (!authority || !client_id) {
           throw new Error("HERCULES_OIDC_AUTHORITY and HERCULES_OIDC_CLIENT_ID must be configured");
         }
         
         try {
-          const googleAuthority = process.env.GOOGLE_OAUTH_AUTHORITY || "https://accounts.google.com";
-          const googleClientId = process.env.GOOGLE_CLIENT_ID;
+          const googleAuthority = import.meta.env.VITE_GOOGLE_OAUTH_AUTHORITY || "https://accounts.google.com";
+          const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
           
           if (googleClientId) {
             window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${window.location.origin}/auth/callback&response_type=code&scope=openid profile email&access_type=offline`;
@@ -104,8 +104,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider value={value}>
       <HerculesAuthProvider
-        authority={process.env.HERCULES_OIDC_AUTHORITY!}
-        client_id={process.env.HERCULES_OIDC_CLIENT_ID!}
+        authority={import.meta.env.VITE_HERCULES_OIDC_AUTHORITY!}
+        client_id={import.meta.env.VITE_HERCULES_OIDC_CLIENT_ID!}
         loadingFallback={<div>Loading authentication...</div>}
       >
         {children}
