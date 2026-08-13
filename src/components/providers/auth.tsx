@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo } from "react";
-import { HerculesAuthProvider, useAuth as useHerculesAuth } from "@usehercules/auth";
+import { HerculesAuthProvider, useAuth as useHerculesAuth } from "@usehercules/auth/react";
 
 type AuthUser = {
   id: string;
