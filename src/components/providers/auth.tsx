@@ -1,5 +1,8 @@
 import { createContext, useContext, useMemo } from "react";
-import { HerculesAuthProvider, useAuth as useHerculesAuth } from "@usehercules/auth/react";
+import {
+  HerculesAuthProvider,
+  useAuth as useHerculesAuth,
+} from "@usehercules/auth/react";
 
 type AuthUser = {
   id: string;
@@ -12,6 +15,7 @@ type AuthUser = {
   token_type?: string;
   scope?: string;
   refresh_token?: string;
+  state?: unknown;
 };
 
 type AuthContextValue = {
@@ -40,76 +44,68 @@ function transformUser(user: any | null): AuthUser | null {
     token_type: user?.token_type,
     scope: user?.scope,
     refresh_token: user?.refresh_token,
+    state: user?.state,
   };
 }
 
 export function useAuth() {
-  const herculesAuth = useHerculesAuth();
-
   const auth = useContext(AuthContext);
   if (!auth) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
+  return auth;
+}
 
-  return {
-    ...auth,
-    isAuthenticated: !!herculesAuth.user,
-    user: transformUser(herculesAuth.user),
-    isLoading: herculesAuth.isLoading,
-    error: herculesAuth.error,
-  };
+function AuthProviderInner({ children }: { children: React.ReactNode }) {
+  const herculesAuth = useHerculesAuth();
+
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      isAuthenticated: herculesAuth.isAuthenticated,
+      user: transformUser(herculesAuth.user),
+      isLoading: herculesAuth.isLoading,
+      error: herculesAuth.error ?? null,
+      signin: () => herculesAuth.signin(),
+      signout: () => herculesAuth.signout(),
+      signinRedirect: () => herculesAuth.signinRedirect(),
+      removeUser: () => herculesAuth.removeUser(),
+    }),
+    [
+      herculesAuth.isAuthenticated,
+      herculesAuth.user,
+      herculesAuth.isLoading,
+      herculesAuth.error,
+      herculesAuth.signin,
+      herculesAuth.signout,
+      herculesAuth.signinRedirect,
+      herculesAuth.removeUser,
+    ],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const value = useMemo<AuthContextValue>(
-    () => ({
-      isAuthenticated: false,
-      user: null,
-      isLoading: false,
-      error: null,
-      signin: async () => {
-        throw new Error("Please use signinRedirect for OIDC auth");
-      },
-      signout: async () => {
-        throw new Error("Please use signinRedirect for OIDC auth");
-      },
-      signinRedirect: async () => {
-        const authority = import.meta.env.VITE_HERCULES_OIDC_AUTHORITY;
-        const client_id = import.meta.env.VITE_HERCULES_OIDC_CLIENT_ID;
-        
-        if (!authority || !client_id) {
-          throw new Error("HERCULES_OIDC_AUTHORITY and HERCULES_OIDC_CLIENT_ID must be configured");
-        }
-        
-        try {
-          const googleAuthority = import.meta.env.VITE_GOOGLE_OAUTH_AUTHORITY || "https://accounts.google.com";
-          const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-          
-          if (googleClientId) {
-            window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${window.location.origin}/auth/callback&response_type=code&scope=openid profile email&access_type=offline`;
-          } else {
-            window.location.href = `${authority}/login?client_id=${client_id}&response_type=code&redirect_uri=${window.location.origin}/auth/callback&scope=openid profile email`;
-          }
-        } catch (err) {
-          throw new Error("Failed to initiate OIDC sign-in");
-        }
-      },
-      removeUser: async () => {
-        throw new Error("Please use signinRedirect for OIDC auth");
-      },
-    }),
-    [],
-  );
+  const authority = import.meta.env.VITE_HERCULES_OIDC_AUTHORITY;
+  const clientId = import.meta.env.VITE_HERCULES_OIDC_CLIENT_ID;
+
+  if (!authority || !clientId) {
+    throw new Error(
+      "VITE_HERCULES_OIDC_AUTHORITY and VITE_HERCULES_OIDC_CLIENT_ID must be configured",
+    );
+  }
 
   return (
-    <AuthContext.Provider value={value}>
-      <HerculesAuthProvider
-        authority={import.meta.env.VITE_HERCULES_OIDC_AUTHORITY!}
-        client_id={import.meta.env.VITE_HERCULES_OIDC_CLIENT_ID!}
-        loadingFallback={<div>Loading authentication...</div>}
-      >
-        {children}
-      </HerculesAuthProvider>
-    </AuthContext.Provider>
+    <HerculesAuthProvider
+      authority={authority}
+      client_id={clientId}
+      loadingFallback={
+        <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+          Loading authentication...
+        </div>
+      }
+    >
+      <AuthProviderInner>{children}</AuthProviderInner>
+    </HerculesAuthProvider>
   );
 }

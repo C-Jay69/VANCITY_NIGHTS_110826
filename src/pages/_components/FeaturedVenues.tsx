@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { StarIcon, MapPinIcon, BadgeCheckIcon, TrendingUpIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
+import { venueImgFallback } from "@/lib/utils.ts";
 
 const FEATURED_VENUES = [
   {
@@ -126,6 +127,7 @@ export default function FeaturedVenues() {
                 <img
                   src={venue.image}
                   alt={venue.name}
+                  onError={venueImgFallback}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />

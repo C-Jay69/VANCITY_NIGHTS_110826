@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { api } from "@/convex/_generated/api.js";
 import type { Doc, Id } from "@/convex/_generated/dataModel.d.ts";
+import { venueImageSrc, venueImgFallback } from "@/lib/utils.ts";
 import Navbar from "../../_components/Navbar.tsx";
 import Footer from "../../_components/Footer.tsx";
 import ReviewForm from "@/components/ReviewForm.tsx";
@@ -166,9 +167,14 @@ export default function VenueDetailPage() {
     venue.ratingCount > 0
       ? (venue.ratingSum / venue.ratingCount).toFixed(1)
       : null;
-  const heroImage = venue.imageUrls[0] ?? "";
+  const heroImage = venueImageSrc(venue.imageUrls[0]);
   const gallery =
     venue.imageUrls.length > 1 ? venue.imageUrls.slice(1) : [];
+  const mapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  const mapQuery = venue.address || venue.name;
+  const mapSrc = mapsApiKey
+    ? `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(mapsApiKey)}&q=${encodeURIComponent(mapQuery)}`
+    : null;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -192,6 +198,7 @@ export default function VenueDetailPage() {
           <img
             src={heroImage}
             alt={venue.name}
+            onError={venueImgFallback}
             className="w-full h-72 md:h-96 object-cover rounded-2xl"
           />
           <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-card via-transparent to-transparent" />
@@ -264,8 +271,9 @@ export default function VenueDetailPage() {
             {gallery.map((src, i) => (
               <img
                 key={i}
-                src={src}
+                src={venueImageSrc(src)}
                 alt={`${venue.name} photo ${i + 2}`}
+                onError={venueImgFallback}
                 className="w-full h-40 md:h-48 object-cover rounded-xl"
               />
             ))}
@@ -286,6 +294,28 @@ export default function VenueDetailPage() {
           </p>
           <p className="text-foreground">{venue.whyItsAce}</p>
         </div>
+
+        {/* Map */}
+        {mapSrc && (
+          <div className="mb-10">
+            <div className="flex items-center gap-2 mb-4">
+              <MapPinIcon className="h-4 w-4 text-primary" />
+              <h2 className="text-lg font-bold text-foreground">Find It</h2>
+            </div>
+            <div className="rounded-2xl overflow-hidden border border-border bg-card">
+              <iframe
+                title={`Map of ${venue.name}`}
+                src={mapSrc}
+                width="100%"
+                height="320"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                allowFullScreen
+                className="border-0"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Reviews */}
         <div className="space-y-6">

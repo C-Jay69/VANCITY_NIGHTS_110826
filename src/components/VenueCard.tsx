@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { StarIcon, MapPinIcon, BadgeCheckIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge.tsx";
+import { venueImageSrc, venueImgFallback } from "@/lib/utils.ts";
 import type { Doc } from "@/convex/_generated/dataModel.d.ts";
 
 const CATEGORY_STYLE: Record<string, string> = {
@@ -27,7 +28,7 @@ export default function VenueCard({ venue }: VenueCardProps) {
       ? (venue.ratingSum / venue.ratingCount).toFixed(1)
       : null;
 
-  const image = venue.imageUrls[0] ?? "";
+  const image = venueImageSrc(venue.imageUrls[0]);
 
   return (
     <Link
@@ -39,6 +40,7 @@ export default function VenueCard({ venue }: VenueCardProps) {
         <img
           src={image}
           alt={venue.name}
+          onError={venueImgFallback}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
