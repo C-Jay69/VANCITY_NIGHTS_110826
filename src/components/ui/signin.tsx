@@ -65,8 +65,12 @@ export const SignInButton = forwardRef<HTMLButtonElement, SignInButtonProps>(
 
     useEffect(() => {
       if (error) {
+        const message =
+          error.message?.includes("No matching state found in storage")
+            ? "Sign-in session expired or was interrupted. Please try signing in again."
+            : error.message;
         toast.error("Login error", {
-          description: error.message,
+          description: message,
         });
         console.error("Login error", error);
       }
