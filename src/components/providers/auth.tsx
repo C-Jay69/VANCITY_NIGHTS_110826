@@ -88,6 +88,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const authority = import.meta.env.VITE_HERCULES_OIDC_AUTHORITY;
   const clientId = import.meta.env.VITE_HERCULES_OIDC_CLIENT_ID;
+  const clientSecret = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
 
   if (!authority || !clientId) {
     throw new Error(
@@ -99,7 +100,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <HerculesAuthProvider
       authority={authority}
       client_id={clientId}
-      userManagerSettings={{ scope: "openid profile email" }}
+      userManagerSettings={{
+        scope: "openid profile email",
+        // Google's token endpoint requires the client secret for this client
+        // type, even when PKCE is used for the authorization code flow.
+        client_secret: clientSecret,
+      }}
       loadingFallback={
         <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
           Loading authentication...
