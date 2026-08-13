@@ -92,3 +92,87 @@ export const getMySubmissions = mutation({
       .take(50);
   },
 });
+
+// Upload an image to storage for a pending venue submission
+export const uploadPendingImage = mutation({
+  args: {
+    venueId: v.id("venues"),
+    storageId: v.id("_storage"),
+    fileName: v.string(),
+    mimeType: v.string(),
+    size: v.number(),
+    isThumbnail: v.optional(v.boolean()),
+    order: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({ code: "UNAUTHENTICATED", message: "Sign in to upload images" });
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!user) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "User account not found" });
+    }
+
+    // Verify the venue is in pending status and belongs to the user
+    const venue = await ctx.db.get(args.venueId);
+    if (!venue) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Venue not found" });
+    }
+    if (venue.status !== "pending") {
+      throw new ConvexError({ code: "BAD_REQUEST", message: "Can only upload images to pending venues" });
+    }
+    if (venue.submittedBy !== user._id) {
+      throw new ConvexError({ code: "FORBIDDEN", message: "Can only upload images to your own submissions" });
+    }
+
+    // Store the image record
+    await ctx.db.insert("pendingVenueImages", {
+      venueId: args.venueId,
+      storageId: args.storageId,
+      fileName: args.fileName,
+      mimeType: args.mimeType,
+      size: args.size,
+      uploadedBy: user._id,
+      uploadedAt: Date.now(),
+      isThumbnail: args.isThumbnail ?? false,
+      order: args.order ?? 0,
+    });
+
+    return { success: true };
+  },
+});
+
+// Get pending images for a venue submission
+export const getPendingImages = query({
+  args: { venueId: v.id("venues") },
+  handler: async (ctx, args) => {
+    // Verify venue is pending
+    const venue = await ctx.db.get(args.venueId);
+    if (!venue) return null;
+    if (venue.status !== "pending") return null;
+
+    const images = await ctx.db
+      .query("pendingVenueImages")
+      .withIndex("by_venue", (q) => q.eq("venueId", args.venueId))
+      .order("asc")
+      .collect();
+
+    // Get signed URLs for each image
+    const imagesWithUrls = await Promise.all(
+      images.map(async (image) => {
+        const url = await ctx.storage.getUrl(image.storageId);
+        return {
+          ...image,
+          url,
+        };
+      })
+    );
+
+    return imagesWithUrls;
+  },
+});

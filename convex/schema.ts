@@ -56,6 +56,22 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_venue_and_user", ["venueId", "userId"]),
 
+  // Pending venue images storage — images that are awaiting moderation approval
+  pendingVenueImages: defineTable({
+    venueId: v.id("venues"),
+    storageId: v.id("_storage"),
+    fileName: v.string(),
+    mimeType: v.string(),
+    size: v.number(),
+    uploadedBy: v.id("users"),
+    uploadedAt: v.number(),
+    isThumbnail: v.boolean(),
+    order: v.number(),
+  })
+    .index("by_venue", ["venueId"])
+    .index("by_uploader", ["uploadedBy"])
+    .index("by_uploaded_at", ["uploadedAt"]),
+
   // Knowledge base fed to the site chat assistant — area guides, restaurants,
   // daytime activities, etc.
   knowledge: defineTable({

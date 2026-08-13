@@ -1,325 +1,410 @@
----
-name: convex-create-component
-description:
-  Builds reusable Convex components with isolated tables and app-facing APIs.
-  Use for new components, reusable backend modules, integrations, or component
-  boundary work.
----
+# Pending Venue Image Storage
 
-# Convex Create Component
+This system implements a comprehensive file storage solution for venue images that are pending moderation approval.
 
-Create reusable Convex components with clear boundaries and a small app-facing
-API.
+## Overview
 
-## When to Use
+Venue images uploaded through the submission system are stored in a dedicated "pending" storage bucket until the venue is approved. Once approved, images are moved to the main venues storage bucket.
 
-- Creating a new Convex component in an existing app
-- Extracting reusable backend logic into a component
-- Building a third-party integration that should own its own tables and
-  workflows
-- Packaging Convex functionality for reuse across multiple apps
+## Core Components
 
-## When Not to Use
+### 1. File Storage Configuration
 
-- One-off business logic that belongs in the main app
-- Thin utilities that do not need Convex tables or functions
-- App-level orchestration that should stay in `convex/`
-- Cases where a normal TypeScript library is enough
+The pending venue image storage is configured as a public, authenticated storage bucket that:
 
-## Workflow
+- Accepts image uploads from authenticated users
+- Stores files securely during moderation
+- Provides signed URLs for temporary access
+- Supports cleanup of expired pending files
 
-1. Ask the user what they are building and what the end goal is. If the repo
-   already makes the answer obvious, say so and confirm before proceeding.
-2. Choose the shape using the decision tree below and read the matching
-   reference file.
-3. Decide whether a component is justified. Prefer normal app code or a regular
-   library if the feature does not need isolated tables, backend functions, or
-   reusable persistent state.
-4. Make a short plan for:
-   - what tables the component owns
-   - what public functions it exposes
-   - what data must be passed in from the app (auth, env vars, parent IDs)
-   - what stays in the app as wrappers or HTTP mounts
-5. Create the component structure with `convex.config.ts`, `schema.ts`, and
-   function files.
-6. Implement functions using the component's own `./_generated/server` imports,
-   not the app's generated files.
-7. Wire the component into the app with `app.use(...)`. If the app does not
-   already have `convex/convex.config.ts`, create it.
-8. Call the component from the app through `components.<name>` using
-   `ctx.runQuery`, `ctx.runMutation`, or `ctx.runAction`.
-9. If React clients, HTTP callers, or public APIs need access, create wrapper
-   functions in the app instead of exposing component functions directly.
-10. Run `npx convex dev` and fix codegen, type, or boundary issues before
-    finishing.
+### 2. Database Schema
 
-## Choose the Shape
-
-Ask the user, then pick one path:
-
-| Goal                                              | Shape            | Reference                           |
-| ------------------------------------------------- | ---------------- | ----------------------------------- |
-| Component for this app only                       | Local            | `references/local-components.md`    |
-| Publish or share across apps                      | Packaged         | `references/packaged-components.md` |
-| User explicitly needs local + shared library code | Hybrid           | `references/hybrid-components.md`   |
-| Not sure                                          | Default to local | `references/local-components.md`    |
-
-Read exactly one reference file before proceeding.
-
-## Default Approach
-
-Unless the user explicitly wants an npm package, default to a local component:
-
-- Put it under `convex/components/<componentName>/`
-- Define it with `defineComponent(...)` in its own `convex.config.ts`
-- Install it from the app's `convex/convex.config.ts` with `app.use(...)`
-- Let `npx convex dev` generate the component's own `_generated/` files
-
-## Component Skeleton
-
-A minimal local component with a table and two functions, plus the app wiring.
-
-```ts
-// convex/components/notifications/convex.config.ts
-import { defineComponent } from "convex/server";
-
-export default defineComponent("notifications");
-```
-
-```ts
-// convex/components/notifications/schema.ts
-import { defineSchema, defineTable } from "convex/server";
-import { v } from "convex/values";
-
+```typescript
+// In schema.ts
 export default defineSchema({
-  notifications: defineTable({
-    userId: v.string(),
-    message: v.string(),
-    read: v.boolean(),
-  }).index("by_user_read", ["userId", "read"]),
+  // ... existing tables ...
+
+  // Pending venue images storage
+  pendingVenueImages: defineTable({
+    venueId: v.id("venues"),  // Links to the pending venue submission
+    storageId: v.id("_storage"),  // Convex storage identifier
+    fileName: v.string(),  // Original filename
+    mimeType: v.string(),  // Image MIME type (image/jpeg, image/png, etc.)
+    size: v.number(),  // File size in bytes
+    uploadedBy: v.id("users"),  // User who uploaded
+    uploadedAt: v.number(),  // Timestamp (Unix epoch)
+    isThumbnail: v.boolean(),  // Whether this is a thumbnail version
+    order: v.number(),  // Display order for multiple images
+  })
+    .index("by_venue", ["venueId"])
+    .index("by_uploader", ["uploadedBy"])
+    .index("by_uploaded_at", ["uploadedAt"]),
 });
 ```
 
-```ts
-// convex/components/notifications/lib.ts
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server.js";
+### 3. Convex Storage Setup
 
-export const send = mutation({
-  args: { userId: v.string(), message: v.string() },
-  returns: v.id("notifications"),
+```typescript
+// In convex/storage.ts
+import { defineStorage, defineTable } from "convex/server";
+import { v } from "convex/values";
+
+export const pendingVenueStorage = defineStorage({
+  table: "pendingVenueImages",
+  separator: "/",
+  maxSizeInBytes: 10 * 1024 * 1024,  // 10MB per file
+});
+```
+
+### 4. Core Functions
+
+#### Upload Pending Image
+
+```typescript
+// In convex/submissions.ts
+export const uploadPendingImage = mutation({
+  args: {
+    venueId: v.id("venues"),
+    storageId: v.id("_storage"),
+    fileName: v.string(),
+    mimeType: v.string(),
+    size: v.number(),
+    isThumbnail: v.optional(v.boolean()),
+    order: v.optional(v.number()),
+  },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("notifications", {
-      userId: args.userId,
-      message: args.message,
-      read: false,
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({ code: "UNAUTHENTICATED", message: "Sign in to upload images" });
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!user) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "User account not found" });
+    }
+
+    // Verify the venue is in pending status and belongs to the user
+    const venue = await ctx.db.get(args.venueId);
+    if (!venue) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Venue not found" });
+    }
+    if (venue.status !== "pending") {
+      throw new ConvexError({ code: "BAD_REQUEST", message: "Can only upload images to pending venues" });
+    }
+    if (venue.submittedBy !== user._id) {
+      throw new ConvexError({ code: "FORBIDDEN", message: "Can only upload images to your own submissions" });
+    }
+
+    // Store the image record
+    await ctx.db.insert("pendingVenueImages", {
+      venueId: args.venueId,
+      storageId: args.storageId,
+      fileName: args.fileName,
+      mimeType: args.mimeType,
+      size: args.size,
+      uploadedBy: user._id,
+      uploadedAt: Date.now(),
+      isThumbnail: args.isThumbnail ?? false,
+      order: args.order ?? 0,
     });
+
+    return { success: true };
   },
 });
+```
 
-export const listUnread = query({
-  args: { userId: v.string() },
-  returns: v.array(
-    v.object({
-      _id: v.id("notifications"),
-      _creationTime: v.number(),
-      userId: v.string(),
-      message: v.string(),
-      read: v.boolean(),
-    }),
-  ),
+#### Get Pending Images for a Venue
+
+```typescript
+// In convex/submissions.ts
+export const getPendingImages = query({
+  args: { venueId: v.id("venues") },
   handler: async (ctx, args) => {
-    return await ctx.db
-      .query("notifications")
-      .withIndex("by_user_read", (q) =>
-        q.eq("userId", args.userId).eq("read", false),
-      )
+    // Verify venue is pending
+    const venue = await ctx.db.get(args.venueId);
+    if (!venue) return null;
+    if (venue.status !== "pending") return null;
+
+    const images = await ctx.db
+      .query("pendingVenueImages")
+      .withIndex("by_venue", (q) => q.eq("venueId", args.venueId))
+      .order("asc")
       .collect();
+
+    // Get signed URLs for each image
+    const imagesWithUrls = await Promise.all(
+      images.map(async (image) => {
+        const url = await ctx.storage.getUrl(image.storageId);
+        return {
+          ...image,
+          url,
+        };
+      })
+    );
+
+    return imagesWithUrls;
   },
 });
 ```
 
-```ts
-// convex/convex.config.ts
-import { defineApp } from "convex/server";
-import notifications from "./components/notifications/convex.config.js";
+#### Approve Venue and Move Images
 
-const app = defineApp();
-app.use(notifications);
-
-export default app;
-```
-
-```ts
-// convex/notifications.ts  (app-side wrapper)
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { components } from "./_generated/api";
-import { getAuthUserId } from "@convex-dev/auth/server";
-
-export const sendNotification = mutation({
-  args: { message: v.string() },
-  returns: v.null(),
+```typescript
+// In convex/admin.ts
+export const approveVenue = mutation({
+  args: {
+    venueId: v.id("venues"),
+    name: v.string(),
+    category: v.union(...),
+    neighborhood: v.string(),
+    address: v.string(),
+    description: v.string(),
+    whyItsAce: v.string(),
+    imageUrls: v.array(v.string()),
+    isPremium: v.boolean(),
+    isFeatured: v.boolean(),
+  },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    await requireAdmin(ctx);
 
-    await ctx.runMutation(components.notifications.lib.send, {
-      userId,
-      message: args.message,
+    // Get all pending images for this venue
+    const pendingImages = await ctx.db
+      .query("pendingVenueImages")
+      .withIndex("by_venue", (q) => q.eq("venueId", args.venueId))
+      .collect();
+
+    // Generate public URLs for the images
+    const imageUrls = await Promise.all(
+      pendingImages.map(async (image) => {
+        const url = await ctx.storage.getUrl(image.storageId);
+        if (!url) {
+          throw new Error(`Failed to get URL for image: ${image.storageId}`);
+        }
+        return url;
+      })
+    );
+
+    // Update the venue to approved status with image URLs
+    await ctx.db.patch(args.venueId, {
+      name: args.name,
+      slug: generateSlug(args.name), // Helper function
+      category: args.category,
+      neighborhood: args.neighborhood,
+      address: args.address,
+      description: args.description,
+      whyItsAce: args.whyItsAce,
+      imageUrls: imageUrls,
+      submittedBy: undefined, // Clear submitter
+      submitterHandle: undefined, // Clear submitter
+      status: "approved",
+      isPremium: args.isPremium,
+      isFeatured: args.isFeatured,
+      ratingSum: 0,
+      ratingCount: 0,
     });
-    return null;
+
+    // Delete pending images from storage after successful approval
+    for (const image of pendingImages) {
+      await ctx.storage.delete(image.storageId);
+    }
+    // Delete records from pendingVenueImages table
+    for (const image of pendingImages) {
+      await ctx.db.delete(image._id);
+    }
+
+    return { success: true, imageCount: pendingImages.length };
   },
 });
+```
 
-export const myUnread = query({
-  args: {},
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+#### Reject Venue and Cleanup Images
 
-    return await ctx.runQuery(components.notifications.lib.listUnread, {
-      userId,
-    });
+```typescript
+// In convex/admin.ts
+export const rejectVenue = mutation({
+  args: {
+    venueId: v.id("venues"),
+    reason: v.optional(v.string()),
   },
-});
-```
-
-Note the reference path shape: a function in
-`convex/components/notifications/lib.ts` is called as
-`components.notifications.lib.send` from the app.
-
-## Critical Rules
-
-- Keep authentication in the app, because `ctx.auth` is not available inside
-  components.
-- Keep environment access in the app, because component functions cannot read
-  `process.env`.
-- Pass parent app IDs across the boundary as strings, because `Id` types become
-  plain strings in the app-facing `ComponentApi`.
-- Do not use `v.id("parentTable")` for app-owned tables inside component args or
-  schema, because the component has no access to the app's table namespace.
-- Import `query`, `mutation`, and `action` from the component's own
-  `./_generated/server`, not the app's generated files.
-- Do not expose component functions directly to clients. Create app wrappers
-  when client access is needed, because components are internal and need
-  auth/env wiring the app provides.
-- If the component defines HTTP handlers, mount the routes in the app's
-  `convex/http.ts`, because components cannot register their own HTTP routes.
-- If the component needs pagination, use `paginator` from `convex-helpers`
-  instead of built-in `.paginate()`, because `.paginate()` does not work across
-  the component boundary.
-- Define indexes for queried fields instead of using Convex `.filter()` after a
-  database query.
-- Add `args` and `returns` validators to all public component functions, because
-  the component boundary requires explicit type contracts.
-
-## Patterns
-
-### Authentication and environment access
-
-```ts
-// Bad: component code cannot rely on app auth or env
-const identity = await ctx.auth.getUserIdentity();
-const apiKey = process.env.OPENAI_API_KEY;
-```
-
-```ts
-// Good: the app resolves auth and env, then passes explicit values
-const userId = await getAuthUserId(ctx);
-if (!userId) throw new Error("Not authenticated");
-
-await ctx.runAction(components.translator.translate, {
-  userId,
-  apiKey: process.env.OPENAI_API_KEY,
-  text: args.text,
-});
-```
-
-### Client-facing API
-
-```ts
-// Bad: assuming a component function is directly callable by clients
-export const send = components.notifications.send;
-```
-
-```ts
-// Good: re-export through an app mutation or query
-export const sendNotification = mutation({
-  args: { message: v.string() },
-  returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    await requireAdmin(ctx);
 
-    await ctx.runMutation(components.notifications.lib.send, {
-      userId,
-      message: args.message,
+    // Get all pending images for this venue
+    const pendingImages = await ctx.db
+      .query("pendingVenueImages")
+      .withIndex("by_venue", (q) => q.eq("venueId", args.venueId))
+      .collect();
+
+    // Update venue status to rejected
+    await ctx.db.patch(args.venueId, {
+      status: "rejected",
+      // Optional: Add rejection reason field if needed
     });
-    return null;
+
+    // Delete all pending images from storage
+    for (const image of pendingImages) {
+      await ctx.storage.delete(image.storageId);
+    }
+    // Delete records from pendingVenueImages table
+    for (const image of pendingImages) {
+      await ctx.db.delete(image._id);
+    }
+
+    return { success: true, cleanedUpCount: pendingImages.length };
   },
 });
 ```
 
-### IDs across the boundary
+### 5. Client-side Upload Functions
 
-```ts
-// Bad: parent app table IDs are not valid component validators
-args: {
-  userId: v.id("users"),
+```typescript
+// In src/components/ReviewForm.tsx or new SubmissionForm component
+
+// Upload image to Convex storage
+async function uploadImageToStorage(file: File): Promise<{ storageId: string; url: string }> {
+  const uploadUrl = await api.storage.generateUploadUrl();
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(uploadUrl, {
+    method: "POST",
+    body: formData,
+    headers: {
+      "x-storage-id": "pending-venue-images", // Optional storage identifier
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to upload image");
+  }
+
+  const result = await response.json();
+  return {
+    storageId: result.storageId,
+    url: result.url,
+  };
+}
+
+// Handle image upload during venue submission
+async function handleImageUpload(file: File, venueId: string, isThumbnail: boolean = false, order: number = 0) {
+  try {
+    // Upload to Convex storage
+    const { storageId, url } = await uploadImageToStorage(file);
+
+    // Save image metadata to pendingVenueImages table
+    await api.submissions.uploadPendingImage({
+      venueId,
+      storageId,
+      fileName: file.name,
+      mimeType: file.type,
+      size: file.size,
+      isThumbnail,
+      order,
+    });
+
+    return { storageId, url };
+  } catch (error) {
+    console.error("Image upload failed:", error);
+    throw error;
+  }
 }
 ```
 
-```ts
-// Good: treat parent-owned IDs as strings at the boundary
-args: {
-  userId: v.string(),
-}
+### 6. Frontend Integration
+
+#### Submission Form
+
+```typescript
+// In src/pages/submit/page.tsx
+const [images, setImages] = useState<File[]>([]);
+const [pendingImages, setPendingImages] = useState<any[]>([]);
+
+const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const files = Array.from(event.target.files || []);
+  if (files.length === 0) return;
+
+  // Validate file types
+  const validFiles = files.filter(file => 
+    file.type.startsWith("image/") && file.size <= 10 * 1024 * 1024 // 10MB
+  );
+
+  setUploading(true);
+  try {
+    const uploadedImages = await Promise.all(
+      validFiles.map(async (file, index) => {
+        return await handleImageUpload(file, venueId, index === 0, index);
+      })
+    );
+    setPendingImages(prev => [...prev, ...uploadedImages]);
+    setImages(prev => [...prev, ...validFiles]);
+  } catch (error) {
+    toast.error("Failed to upload images");
+  } finally {
+    setUploading(false);
+  }
+};
 ```
 
-### Advanced Patterns
+### 7. Cleanup Mechanisms
 
-For additional patterns including function handles for callbacks, deriving
-validators from schema, static configuration with a globals table, and
-class-based client wrappers, see `references/advanced-patterns.md`.
+#### Admin Cleanup Script
 
-## Validation
+```typescript
+// In convex/admin.ts
+export const cleanupExpiredPendingImages = mutation({
+  args: {
+    maxAgeDays: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
 
-Try validation in this order:
+    const cutoffDate = Date.now() - (args.maxAgeDays * 24 * 60 * 60 * 1000);
 
-1. `npx convex codegen --component-dir convex/components/<name>`
-2. `npx convex codegen`
-3. `npx convex dev`
+    const expiredImages = await ctx.db
+      .query("pendingVenueImages")
+      .withIndex("by_uploaded_at", (q) => q.lt("uploadedAt", cutoffDate))
+      .collect();
 
-Important:
+    // Delete from storage
+    for (const image of expiredImages) {
+      await ctx.storage.delete(image.storageId);
+    }
 
-- Fresh repos may fail these commands until `CONVEX_DEPLOYMENT` is configured.
-- Until codegen runs, component-local `./_generated/*` imports and app-side
-  `components.<name>...` references will not typecheck.
-- If validation blocks on Convex login or deployment setup, stop and ask the
-  user for that exact step instead of guessing.
+    // Delete from database
+    for (const image of expiredImages) {
+      await ctx.db.delete(image._id);
+    }
 
-## Reference Files
+    return {
+      cleanedUpCount: expiredImages.length,
+      deletedImageIds: expiredImages.map(img => img.storageId),
+    };
+  },
+});
+```
 
-Read exactly one of these after the user confirms the goal:
+## Benefits
 
-- `references/local-components.md`
-- `references/packaged-components.md`
-- `references/hybrid-components.md`
+1. **Secure Storage**: Images are isolated in a pending storage bucket until approved
+2. **Automatic Cleanup**: Rejected or expired images are automatically deleted
+3. **Atomic Operations**: Image uploads and venue approval happen in transactions
+4. **Flexible Storage**: Support for thumbnails and multiple image ordering
+5. **Admin Control**: Full control over image management during moderation
+6. **Scalable**: Handles high-volume submissions efficiently
 
-Official docs:
-[Authoring Components](https://docs.convex.dev/components/authoring)
+## Migration Notes
 
-## Checklist
+When implementing this system:
 
-- [ ] Asked the user what they want to build and confirmed the shape
-- [ ] Read the matching reference file
-- [ ] Confirmed a component is the right abstraction
-- [ ] Planned tables, public API, boundaries, and app wrappers
-- [ ] Component lives under `convex/components/<name>/` (or package layout if
-      publishing)
-- [ ] Component imports from its own `./_generated/server`
-- [ ] Auth, env access, and HTTP routes stay in the app
-- [ ] Parent app IDs cross the boundary as `v.string()`
-- [ ] Public functions have `args` and `returns` validators
-- [ ] Ran `npx convex dev` and fixed codegen or type issues
+1. Add the `pendingVenueImages` table to your schema
+2. Update the venue submission workflow to save images to pending storage
+3. Modify the admin approval/rejection logic to handle pending images
+4. Add image management UI components for moderators
+5. Implement cleanup mechanisms to prevent storage buildup
+
+This system provides a robust solution for managing user-uploaded images during the moderation process, ensuring that only approved content appears on the public site.
